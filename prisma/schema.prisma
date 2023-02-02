@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "mysql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+    id              String                 @id @default(uuid())
+    name            String
+    userName        String                 @unique
+    password        String
+    userAdm         Boolean                @default(false)
+    active          String
+    createdAt       DateTime               @default(now())
+    avatar          String                 @db.LongText
+    Category        Category[]
+    Product         Product[]
+    userReceiving   ReceivingLogistics[]   @relation("UserReceiving")
+    altUser         ReceivingLogistics[]   @relation("AltUser")
+    userPaidOff     ReceivingLogistics[]   @relation("UserPaidOff")
+    userRequisition LogisticsRequisition[] @relation("UserRequisition")
+
+    @@map("users")
+}
+
+model Category {
+    id          String    @id @default(uuid())
+    description String    @unique
+    createdAt   DateTime  @default(now())
+    user        User      @relation(fields: [userId], references: [id])
+    userId      String
+    active      String
+    Product     Product[]
+
+    @@map("categories")
+}
+
+model Product {
+    id                            String                          @id @default(uuid())
+    name                          String                          @unique
+    saleValue                     Float
+    minimumAmount                 Float
+    active                        String
+    category                      Category                        @relation(fields: [categoryId], references: [id])
+    categoryId                    String
+    createdAt                     DateTime                        @default(now())
+    user                          User                            @relation(fields: [userId], references: [id])
+    userId                        String
+    image                         String                          @db.LongText
+    quantity                      Float
+    product                       ReceivingLogisticsMaterials[]   @relation("Product")
+    StockOfMaterials              StockOfMaterials[]              @relation("Product")
+    LogisticsRequisitionMaterials LogisticsRequisitionMaterials[] @relation("Product")
+
+    @@map("products")
+}
+
+model ReceivingLogistics {
+    id                          String                        @id @default(uuid())
+    createdAt                   DateTime                      @default(now())
+    userReceiving               User?                         @relation("UserReceiving", fields: [userReceivingId], references: [id])
+    userReceivingId             String
+    paidOff                     Boolean?
+    datePaidOff                 DateTime?
+    userPaidOff                 User?                         @relation("UserPaidOff", fields: [userPaidOffId], references: [id])
+    userPaidOffId               String?
+    numberInvoice               String?
+    altUser                     User?                         @relation("AltUser", fields: [altUserId], references: [id])
+    altUserId                   String?
+    status                      String
+    ReceivingLogisticsMaterials ReceivingLogisticsMaterials[] @relation("Receiving")
+    StockOfMaterials            StockOfMaterials[]            @relation("Receiving")
+
+    @@map("receiving_logistics")
+}
+
+model ReceivingLogisticsMaterials {
+    id               String             @id @default(uuid())
+    receiving        ReceivingLogistics @relation("Receiving", fields: [receivingId], references: [id])
+    receivingId      String
+    product          Product            @relation("Product", fields: [productId], references: [id])
+    productId        String
+    unitOfMeasure    String
+    quantity         Float
+    unitaryValue     Float
+    totalValue       Float
+    StockOfMaterials StockOfMaterials[] @relation("ReceivingMaterial")
+
+    @@map("receiving_logistics_materials")
+}
+
+model StockOfMaterials {
+    id                  String                      @id @default(uuid())
+    receiving           ReceivingLogistics          @relation("Receiving", fields: [receivingId], references: [id])
+    receivingId         String
+    receivingMaterial   ReceivingLogisticsMaterials @relation("ReceivingMaterial", fields: [receivingMaterialId], references: [id])
+    receivingMaterialId String
+    product             Product                     @relation("Product", fields: [productId], references: [id])
+    productId           String
+    quantity            Float
+    unitOfMeasure       String
+    requisition         LogisticsRequisition?       @relation("Stock", fields: [requisitionId], references: [id])
+    requisitionId       String?
+    referenceId         String?
+
+    @@map("stock_materials")
+}
+
+model LogisticsRequisition {
+    id                            String                          @id @default(uuid())
+    createdAt                     DateTime                        @default(now())
+    user                          User?                           @relation("UserRequisition", fields: [userId], references: [id])
+    userId                        String
+    LogisticsRequisitionMaterials LogisticsRequisitionMaterials[] @relation("RequisionMaterial")
+    StockOfMaterials              StockOfMaterials[]              @relation("Stock")
+
+    @@map("logistics_requisition")
+}
+
+model LogisticsRequisitionMaterials {
+    id            String               @id @default(uuid())
+    requisition   LogisticsRequisition @relation("RequisionMaterial", fields: [requisitionId], references: [id])
+    requisitionId String
+    product       Product              @relation("Product", fields: [productId], references: [id])
+    productId     String
+    quantity      Float
+
+    @@map("logistics_requisition_material")
+}
